@@ -58,9 +58,9 @@ func TestStakeMinFilter(t *testing.T) {
 }
 
 func TestLocationProximityFilter(t *testing.T) {
-	f := locationProximityFilter{ProximityThreshold: 0.0}
-	policy := &ConsumerPolicy{RequiredLocation: "2"}
-	p1 := &Provider{Location: "2"}
+	f := locationProximityTableFilter{}
+	policy := &ConsumerPolicy{RequiredLocation: "EU"}
+	p1 := &Provider{Location: "EU"}
 	p2 := &Provider{Location: ""}
 	if !f.apply(p1, policy) {
 		t.Error("Expected matching location to pass")
@@ -72,8 +72,8 @@ func TestLocationProximityFilter(t *testing.T) {
 
 func TestScorers(t *testing.T) {
 	ctx := &scoringContext{MaxStake: 200, MinStake: 100, MaxFeatureCount: 6}
-	policy := &ConsumerPolicy{RequiredFeatures: []string{"rpc", "rest"}, RequiredLocation: "2"}
-	provider := &Provider{Stake: 150, Features: []string{"rpc", "rest", "grpc"}, Location: "2"}
+	policy := &ConsumerPolicy{RequiredFeatures: []string{"rpc", "rest"}, RequiredLocation: "EU"}
+	provider := &Provider{Stake: 150, Features: []string{"rpc", "rest", "grpc"}, Location: "EU"}
 
 	stakeScore := linearStakeScorer{}.score(provider, policy, ctx)
 	if stakeScore <= 0 || stakeScore >= 1 {
@@ -85,7 +85,7 @@ func TestScorers(t *testing.T) {
 		t.Errorf("Unexpected feature score: %f", featureScore)
 	}
 
-	locationScore := locationProximityScorer{}.score(provider, policy, ctx)
+	locationScore := locationProximityTableScorer{}.score(provider, policy, ctx)
 	if locationScore != 1.0 {
 		t.Errorf("Expected exact location score to be 1.0, got %f", locationScore)
 	}
@@ -94,12 +94,12 @@ func TestScorers(t *testing.T) {
 func TestMainPairingSystem_GetPairingList(t *testing.T) {
 	ps := &MainPairingSystem{}
 	providers := []*Provider{
-		{Address: "1", Stake: 150, Location: "2", Features: []string{"rpc", "rest"}},
-		{Address: "2", Stake: 50, Location: "3", Features: []string{"grpc"}},
-		{Address: "3", Stake: 200, Location: "2", Features: []string{"rpc", "rest", "grpc"}},
+		{Address: "1", Stake: 150, Location: "EU", Features: []string{"rpc", "rest"}},
+		{Address: "2", Stake: 50, Location: "US", Features: []string{"grpc"}},
+		{Address: "3", Stake: 200, Location: "EU", Features: []string{"rpc", "rest", "grpc"}},
 	}
 	policy := &ConsumerPolicy{
-		RequiredLocation: "2",
+		RequiredLocation: "EU",
 		RequiredFeatures: []string{"rpc", "rest"},
 		MinStake:         100,
 	}

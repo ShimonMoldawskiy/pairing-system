@@ -64,7 +64,7 @@ func (ps *MainPairingSystem) FilterProviders(providers []*Provider, policy *Cons
 	filters := []filter{
 		rejectEmptyAddressFilter{},
 		normalizedFeaturesFilter{},
-		locationProximityFilter{ProximityThreshold: proximityThreshold},
+		locationProximityTableFilter{},
 		stakeMinFilter{},
 	}
 
@@ -78,7 +78,7 @@ func (ps *MainPairingSystem) RankProviders(providers []*Provider, policy *Consum
 	scorers := []scorer{
 		linearStakeScorer{},
 		linearFeatureCountScorer{},
-		locationProximityScorer{},
+		locationProximityTableScorer{},
 	}
 
 	return concurrentScoringPipeline(providers, policy, ctx, scorers)

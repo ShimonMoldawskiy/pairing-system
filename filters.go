@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-const proximityThreshold = 0.0
+const proximityThreshold = 0.4
 
 // rejectEmptyAddressFilter filters out providers with empty addresses
 type rejectEmptyAddressFilter struct{}
@@ -61,24 +61,22 @@ func (f normalizedFeaturesFilter) apply(p *Provider, policy *ConsumerPolicy) boo
 	return res
 }
 
-// locationProximityFilter applies filtering based on unimplemented proximity logic
-type locationProximityFilter struct {
-	ProximityThreshold float64
-}
+// locationProximityTableFilter applies filtering based on unimplemented proximity logic
+type locationProximityTableFilter struct{}
 
-func (f locationProximityFilter) name() string { return "location" }
+func (f locationProximityTableFilter) name() string { return "location" }
 
-func (f locationProximityFilter) apply(p *Provider, policy *ConsumerPolicy) bool {
+func (f locationProximityTableFilter) apply(p *Provider, policy *ConsumerPolicy) bool {
 	if policy.RequiredLocation == "" {
 		return true
 	}
-	if p.Location == "" {
+	if p.Location == "" || locationProximity(p.Location, policy.RequiredLocation) < proximityThreshold {
 		if verbose {
 			log.Printf("Provider %s filtered out by %s filter", p.Address, f.name())
 		}
 		return false
 	}
-	// Proximity logic will be implemented later
+
 	return true
 }
 

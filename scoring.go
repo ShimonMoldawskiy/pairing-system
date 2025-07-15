@@ -47,21 +47,13 @@ func (s linearFeatureCountScorer) score(p *Provider, policy *ConsumerPolicy, ctx
 	return res
 }
 
-// locationProximityScorer assigns 1.0 for exact match, else less (proximity logic later)
-type locationProximityScorer struct{}
+// locationProximityTableScorer assigns 1.0 for exact match, else less
+type locationProximityTableScorer struct{}
 
-func (s locationProximityScorer) name() string { return "location" }
+func (s locationProximityTableScorer) name() string { return "location" }
 
-func (s locationProximityScorer) score(p *Provider, policy *ConsumerPolicy, ctx *scoringContext) float64 {
-	res := 0.0
-	if policy.RequiredLocation == "" {
-		res = 1.0 // No restriction
-	} else if p.Location == policy.RequiredLocation {
-		res = 1.0
-	} else {
-		// Placeholder for future proximity calculation
-		res = 0.5
-	}
+func (s locationProximityTableScorer) score(p *Provider, policy *ConsumerPolicy, ctx *scoringContext) float64 {
+	res := locationProximity(p.Location, policy.RequiredLocation)
 	if verbose {
 		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.name(), res)
 	}

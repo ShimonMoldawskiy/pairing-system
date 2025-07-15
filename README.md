@@ -16,7 +16,7 @@ This Go module implements the provider pairing logic for the PRC Gateway Network
 ### Scoring Strategy
 - StakeScore: Normalized based on min-max stake.
 - FeatureScore: Normalized based on number of features.
-- LocationScore: 1.0 for exact match (proximity calculation is a placeholder).
+- LocationScore: 1.0 for exact match.
 - Total score is a weighted sum defined by `scoreWeights` parameter.
 
 ### Composable Filters and Scorers
