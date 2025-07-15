@@ -11,8 +11,8 @@ func EnableVerboseLogging() {
 	verbose = true
 }
 
-// NormalizeFeatures trims whitespace and sorts + deduplicates features
-func NormalizeFeatures(features []string) []string {
+// normalizeFeatures trims whitespace and sorts + deduplicates features
+func normalizeFeatures(features []string) []string {
 	featureSet := make(map[string]struct{})
 	for _, f := range features {
 		trimmed := strings.TrimSpace(f)

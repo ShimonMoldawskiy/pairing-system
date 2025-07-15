@@ -25,14 +25,14 @@ type PairingSystem interface {
 	GetPairingList(providers []*Provider, policy *ConsumerPolicy) ([]*Provider, error)
 }
 
-// Filter interface for pipeline filtering
-type Filter interface {
-	Name() string
-	Apply(*Provider, *ConsumerPolicy) bool
+// filter interface for pipeline filtering
+type filter interface {
+	name() string
+	apply(*Provider, *ConsumerPolicy) bool
 }
 
-// Scorer interface for score computation
-type Scorer interface {
-	Name() string
-	Score(*Provider, *ConsumerPolicy, *ScoringContext) float64
+// scorer interface for score computation
+type scorer interface {
+	name() string
+	score(*Provider, *ConsumerPolicy, *scoringContext) float64
 }

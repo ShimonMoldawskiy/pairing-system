@@ -7,7 +7,7 @@ import (
 func TestNormalizeFeatures(t *testing.T) {
 	input := []string{"  rpc", "REST", "rpc", "rest ", "", "REST"}
 	expected := []string{"REST", "rest", "rpc"}
-	output := NormalizeFeatures(input)
+	output := normalizeFeatures(input)
 	if len(output) != len(expected) {
 		t.Fatalf("Expected %v, got %v", expected, output)
 	}
@@ -19,73 +19,73 @@ func TestNormalizeFeatures(t *testing.T) {
 }
 
 func TestRejectEmptyAddressFilter(t *testing.T) {
-	f := RejectEmptyAddressFilter{}
+	f := rejectEmptyAddressFilter{}
 	p1 := &Provider{Address: ""}
 	p2 := &Provider{Address: "abc"}
-	if f.Apply(p1, &ConsumerPolicy{}) {
+	if f.apply(p1, &ConsumerPolicy{}) {
 		t.Error("Expected false for empty address")
 	}
-	if !f.Apply(p2, &ConsumerPolicy{}) {
+	if !f.apply(p2, &ConsumerPolicy{}) {
 		t.Error("Expected true for valid address")
 	}
 }
 
 func TestRequiredFeaturesFilter(t *testing.T) {
-	f := RequiredFeaturesFilter{}
+	f := normalizedFeaturesFilter{}
 	policy := &ConsumerPolicy{RequiredFeatures: []string{"rest", "rpc"}}
 	provider := &Provider{Features: []string{"grpc", "rest", "rpc"}}
-	if !f.Apply(provider, policy) {
+	if !f.apply(provider, policy) {
 		t.Error("Expected provider to pass required features filter")
 	}
 
 	provider.Features = []string{"rest"}
-	if f.Apply(provider, policy) {
+	if f.apply(provider, policy) {
 		t.Error("Expected provider to fail required features filter")
 	}
 }
 
 func TestStakeMinFilter(t *testing.T) {
-	f := StakeMinFilter{}
+	f := stakeMinFilter{}
 	policy := &ConsumerPolicy{MinStake: 100}
 	p1 := &Provider{Stake: 100}
 	p2 := &Provider{Stake: 50}
-	if !f.Apply(p1, policy) {
+	if !f.apply(p1, policy) {
 		t.Error("Expected provider with exact stake to pass")
 	}
-	if f.Apply(p2, policy) {
+	if f.apply(p2, policy) {
 		t.Error("Expected provider with low stake to fail")
 	}
 }
 
 func TestLocationProximityFilter(t *testing.T) {
-	f := LocationProximityFilter{ProximityThreshold: 0.0}
+	f := locationProximityFilter{ProximityThreshold: 0.0}
 	policy := &ConsumerPolicy{RequiredLocation: "2"}
 	p1 := &Provider{Location: "2"}
 	p2 := &Provider{Location: ""}
-	if !f.Apply(p1, policy) {
+	if !f.apply(p1, policy) {
 		t.Error("Expected matching location to pass")
 	}
-	if f.Apply(p2, policy) {
+	if f.apply(p2, policy) {
 		t.Error("Expected empty location to fail")
 	}
 }
 
 func TestScorers(t *testing.T) {
-	ctx := &ScoringContext{MaxStake: 200, MinStake: 100, MaxFeatureCount: 6}
+	ctx := &scoringContext{MaxStake: 200, MinStake: 100, MaxFeatureCount: 6}
 	policy := &ConsumerPolicy{RequiredFeatures: []string{"rpc", "rest"}, RequiredLocation: "2"}
 	provider := &Provider{Stake: 150, Features: []string{"rpc", "rest", "grpc"}, Location: "2"}
 
-	stakeScore := StakeScorer{}.Score(provider, policy, ctx)
+	stakeScore := linearStakeScorer{}.score(provider, policy, ctx)
 	if stakeScore <= 0 || stakeScore >= 1 {
 		t.Errorf("Unexpected stake score: %f", stakeScore)
 	}
 
-	featureScore := FeatureScorer{}.Score(provider, policy, ctx)
+	featureScore := linearFeatureCountScorer{}.score(provider, policy, ctx)
 	if featureScore <= 0 {
 		t.Errorf("Unexpected feature score: %f", featureScore)
 	}
 
-	locationScore := LocationScorer{}.Score(provider, policy, ctx)
+	locationScore := locationProximityScorer{}.score(provider, policy, ctx)
 	if locationScore != 1.0 {
 		t.Errorf("Expected exact location score to be 1.0, got %f", locationScore)
 	}

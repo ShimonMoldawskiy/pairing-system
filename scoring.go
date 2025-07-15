@@ -12,12 +12,12 @@ var scoreWeights = map[string]float64{
 	"location": 0.2,
 }
 
-// StakeScorer assigns a score based on provider's stake relative to max stake
-type StakeScorer struct{}
+// linearStakeScorer assigns a score based on provider's stake relative to max stake
+type linearStakeScorer struct{}
 
-func (s StakeScorer) Name() string { return "stake" }
+func (s linearStakeScorer) name() string { return "stake" }
 
-func (s StakeScorer) Score(p *Provider, policy *ConsumerPolicy, ctx *ScoringContext) float64 {
+func (s linearStakeScorer) score(p *Provider, policy *ConsumerPolicy, ctx *scoringContext) float64 {
 	res := 0.0
 	if ctx.MaxStake == ctx.MinStake {
 		res = 1.0 // All have equal stake
@@ -25,34 +25,34 @@ func (s StakeScorer) Score(p *Provider, policy *ConsumerPolicy, ctx *ScoringCont
 		res = float64(p.Stake-ctx.MinStake) / float64(ctx.MaxStake-ctx.MinStake)
 	}
 	if verbose {
-		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.Name(), res)
+		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.name(), res)
 	}
 	return res
 }
 
-// FeatureScorer gives a higher score for more features than required
-type FeatureScorer struct{}
+// linearFeatureCountScorer gives a higher score for more features than required
+type linearFeatureCountScorer struct{}
 
-func (s FeatureScorer) Name() string { return "feature" }
+func (s linearFeatureCountScorer) name() string { return "feature" }
 
-func (s FeatureScorer) Score(p *Provider, policy *ConsumerPolicy, ctx *ScoringContext) float64 {
+func (s linearFeatureCountScorer) score(p *Provider, policy *ConsumerPolicy, ctx *scoringContext) float64 {
 	extra := len(p.Features) - len(policy.RequiredFeatures)
 	res := 0.0
 	if ctx.MaxFeatureCount != 0 {
 		res = math.Min(1.0, float64(extra+len(policy.RequiredFeatures))/float64(ctx.MaxFeatureCount))
 	}
 	if verbose {
-		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.Name(), res)
+		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.name(), res)
 	}
 	return res
 }
 
-// LocationScorer assigns 1.0 for exact match, else less (proximity logic later)
-type LocationScorer struct{}
+// locationProximityScorer assigns 1.0 for exact match, else less (proximity logic later)
+type locationProximityScorer struct{}
 
-func (s LocationScorer) Name() string { return "location" }
+func (s locationProximityScorer) name() string { return "location" }
 
-func (s LocationScorer) Score(p *Provider, policy *ConsumerPolicy, ctx *ScoringContext) float64 {
+func (s locationProximityScorer) score(p *Provider, policy *ConsumerPolicy, ctx *scoringContext) float64 {
 	res := 0.0
 	if policy.RequiredLocation == "" {
 		res = 1.0 // No restriction
@@ -63,7 +63,7 @@ func (s LocationScorer) Score(p *Provider, policy *ConsumerPolicy, ctx *ScoringC
 		res = 0.5
 	}
 	if verbose {
-		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.Name(), res)
+		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.name(), res)
 	}
 	return res
 }

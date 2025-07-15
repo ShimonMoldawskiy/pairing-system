@@ -7,32 +7,32 @@ import (
 
 const proximityThreshold = 0.0
 
-// RejectEmptyAddressFilter filters out providers with empty addresses
-type RejectEmptyAddressFilter struct{}
+// rejectEmptyAddressFilter filters out providers with empty addresses
+type rejectEmptyAddressFilter struct{}
 
-func (f RejectEmptyAddressFilter) Name() string { return "empty-address" }
+func (f rejectEmptyAddressFilter) name() string { return "empty-address" }
 
-func (f RejectEmptyAddressFilter) Apply(p *Provider, policy *ConsumerPolicy) bool {
+func (f rejectEmptyAddressFilter) apply(p *Provider, policy *ConsumerPolicy) bool {
 	res := strings.TrimSpace(p.Address) != ""
 	if !res && verbose {
-		log.Printf("Provider %s filtered out by %s filter: %v\n", p.Address, f.Name(), p)
+		log.Printf("Provider %s filtered out by %s filter: %v\n", p.Address, f.name(), p)
 	}
 	return res
 }
 
-// RequiredFeaturesFilter ensures the provider supports all required features
-type RequiredFeaturesFilter struct{}
+// normalizedFeaturesFilter ensures the provider supports all required features
+type normalizedFeaturesFilter struct{}
 
-func (f RequiredFeaturesFilter) Name() string { return "feature" }
+func (f normalizedFeaturesFilter) name() string { return "feature" }
 
-func (f RequiredFeaturesFilter) Apply(p *Provider, policy *ConsumerPolicy) bool {
+func (f normalizedFeaturesFilter) apply(p *Provider, policy *ConsumerPolicy) bool {
 
 	if len(policy.RequiredFeatures) == 0 {
 		return true
 	}
 	if len(p.Features) == 0 {
 		if verbose {
-			log.Printf("Provider %s filtered out by %s filter\n", p.Address, f.Name())
+			log.Printf("Provider %s filtered out by %s filter\n", p.Address, f.name())
 		}
 		return false
 	}
@@ -48,7 +48,7 @@ func (f RequiredFeaturesFilter) Apply(p *Provider, policy *ConsumerPolicy) bool 
 		} else {
 			// Required feature is missing
 			if verbose {
-				log.Printf("Provider %s filtered out by %s filter\n", p.Address, f.Name())
+				log.Printf("Provider %s filtered out by %s filter\n", p.Address, f.name())
 			}
 			return false
 		}
@@ -56,25 +56,25 @@ func (f RequiredFeaturesFilter) Apply(p *Provider, policy *ConsumerPolicy) bool 
 
 	res := i == len(policy.RequiredFeatures)
 	if !res && verbose {
-		log.Printf("Provider %s filtered out by %s filter", p.Address, f.Name())
+		log.Printf("Provider %s filtered out by %s filter", p.Address, f.name())
 	}
 	return res
 }
 
-// LocationProximityFilter applies filtering based on unimplemented proximity logic
-type LocationProximityFilter struct {
+// locationProximityFilter applies filtering based on unimplemented proximity logic
+type locationProximityFilter struct {
 	ProximityThreshold float64
 }
 
-func (f LocationProximityFilter) Name() string { return "location" }
+func (f locationProximityFilter) name() string { return "location" }
 
-func (f LocationProximityFilter) Apply(p *Provider, policy *ConsumerPolicy) bool {
+func (f locationProximityFilter) apply(p *Provider, policy *ConsumerPolicy) bool {
 	if policy.RequiredLocation == "" {
 		return true
 	}
 	if p.Location == "" {
 		if verbose {
-			log.Printf("Provider %s filtered out by %s filter", p.Address, f.Name())
+			log.Printf("Provider %s filtered out by %s filter", p.Address, f.name())
 		}
 		return false
 	}
@@ -82,15 +82,15 @@ func (f LocationProximityFilter) Apply(p *Provider, policy *ConsumerPolicy) bool
 	return true
 }
 
-// StakeMinFilter filters out providers that do not meet minimum stake
-type StakeMinFilter struct{}
+// stakeMinFilter filters out providers that do not meet minimum stake
+type stakeMinFilter struct{}
 
-func (f StakeMinFilter) Name() string { return "stake" }
+func (f stakeMinFilter) name() string { return "stake" }
 
-func (f StakeMinFilter) Apply(p *Provider, policy *ConsumerPolicy) bool {
+func (f stakeMinFilter) apply(p *Provider, policy *ConsumerPolicy) bool {
 	res := p.Stake >= policy.MinStake
 	if !res && verbose {
-		log.Printf("Provider %s filtered out by %s filter\n", p.Address, f.Name())
+		log.Printf("Provider %s filtered out by %s filter\n", p.Address, f.name())
 	}
 	return res
 }

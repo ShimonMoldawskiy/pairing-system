@@ -32,7 +32,7 @@ func (ps *MainPairingSystem) GetPairingList(providers []*Provider, policy *Consu
 	normalizedPolicy := &ConsumerPolicy{
 		// Copying the policy to avoid modifying the original
 		RequiredLocation: policy.RequiredLocation,
-		RequiredFeatures: NormalizeFeatures(policy.RequiredFeatures),
+		RequiredFeatures: normalizeFeatures(policy.RequiredFeatures),
 		MinStake:         policy.MinStake,
 	}
 
@@ -61,24 +61,24 @@ func (ps *MainPairingSystem) GetPairingList(providers []*Provider, policy *Consu
 
 func (ps *MainPairingSystem) FilterProviders(providers []*Provider, policy *ConsumerPolicy) []*Provider {
 	// Build filter pipeline
-	filters := []Filter{
-		RejectEmptyAddressFilter{},
-		RequiredFeaturesFilter{},
-		LocationProximityFilter{ProximityThreshold: proximityThreshold},
-		StakeMinFilter{},
+	filters := []filter{
+		rejectEmptyAddressFilter{},
+		normalizedFeaturesFilter{},
+		locationProximityFilter{ProximityThreshold: proximityThreshold},
+		stakeMinFilter{},
 	}
 
 	return concurrentFilterPipeline(providers, policy, filters)
 }
 
 func (ps *MainPairingSystem) RankProviders(providers []*Provider, policy *ConsumerPolicy) []*PairingScore {
-	ctx := BuildScoringContext(providers)
+	ctx := buildScoringContext(providers)
 
 	// Build scorer pipeline
-	scorers := []Scorer{
-		StakeScorer{},
-		FeatureScorer{},
-		LocationScorer{},
+	scorers := []scorer{
+		linearStakeScorer{},
+		linearFeatureCountScorer{},
+		locationProximityScorer{},
 	}
 
 	return concurrentScoringPipeline(providers, policy, ctx, scorers)

@@ -17,7 +17,7 @@ func init() {
 	}
 }
 
-func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, filters []Filter) []*Provider {
+func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, filters []filter) []*Provider {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrency)
@@ -53,11 +53,11 @@ func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, fil
 				Address:  p.Address,
 				Stake:    p.Stake,
 				Location: p.Location,
-				Features: NormalizeFeatures(p.Features),
+				Features: normalizeFeatures(p.Features),
 			}
 
 			for _, f := range filters {
-				if !f.Apply(normalizedP, policy) {
+				if !f.apply(normalizedP, policy) {
 					log.Printf("Provider %s filtered out by %T\n", p.Address, f)
 					return
 				}
@@ -73,7 +73,7 @@ func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, fil
 	return result
 }
 
-func concurrentScoringPipeline(providers []*Provider, policy *ConsumerPolicy, ctx *ScoringContext, scorers []Scorer) []*PairingScore {
+func concurrentScoringPipeline(providers []*Provider, policy *ConsumerPolicy, ctx *scoringContext, scorers []scorer) []*PairingScore {
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrency)
 	scoreChan := make(chan *PairingScore, len(providers))
@@ -95,9 +95,9 @@ func concurrentScoringPipeline(providers []*Provider, policy *ConsumerPolicy, ct
 			components := map[string]float64{}
 			sum := 0.0
 			for _, scorer := range scorers {
-				v := scorer.Score(p, policy, ctx)
-				components[scorer.Name()] = v
-				sum += scoreWeights[scorer.Name()] * v
+				v := scorer.score(p, policy, ctx)
+				components[scorer.name()] = v
+				sum += scoreWeights[scorer.name()] * v
 			}
 
 			if verbose {
