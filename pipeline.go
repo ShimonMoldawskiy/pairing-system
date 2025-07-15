@@ -18,12 +18,11 @@ func init() {
 }
 
 func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, filters []filter) []*Provider {
-	var mu sync.Mutex
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrency)
-	result := []*Provider{}
+	resultChan := make(chan *Provider, len(providers))
 
-	addressSeen := make(map[string]bool)
+	addressSeen := sync.Map{}
 
 	for _, provider := range providers {
 		p := provider
@@ -39,12 +38,9 @@ func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, fil
 				return
 			}
 
-			if _, exists := addressSeen[p.Address]; exists {
+			_, loaded := addressSeen.LoadOrStore(p.Address, true)
+			if loaded {
 				log.Printf("Duplicate provider address detected: %s\n", p.Address)
-			} else {
-				mu.Lock()
-				addressSeen[p.Address] = true
-				mu.Unlock()
 			}
 
 			// Normalize Provider features
@@ -63,13 +59,19 @@ func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, fil
 				}
 			}
 
-			mu.Lock()
-			result = append(result, normalizedP)
-			mu.Unlock()
+			resultChan <- normalizedP
 		}()
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	result := []*Provider{}
+	for p := range resultChan {
+		result = append(result, p)
+	}
 	return result
 }
 
