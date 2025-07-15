@@ -1,5 +1,9 @@
 package pairing
 
+import (
+	"sync"
+)
+
 // scoringContext is the set of metrics created in the first pass after filtering
 // and passed to scorers for normalization support
 type scoringContext struct {
@@ -8,28 +12,53 @@ type scoringContext struct {
 	MaxFeatureCount int
 }
 
-// buildScoringContext analyzes filtered providers to extract global metrics
-func buildScoringContext(providers []*Provider) *scoringContext {
+// map to store scoring contexts for passing between functions within the same goroutine
+// without changing the function signatures
+var scoringContextMap sync.Map // map[goroutineID]*ScoringContext
 
-	maxStake := providers[0].Stake
-	minStake := providers[0].Stake
-	maxFeatures := len(providers[0].Features)
+type scoringContextBuilder struct {
+	mu              sync.Mutex
+	initialized     bool
+	minStake        int64
+	maxStake        int64
+	maxFeatureCount int
+}
 
-	for _, p := range providers[1:] {
-		if p.Stake > maxStake {
-			maxStake = p.Stake
-		}
-		if p.Stake < minStake {
-			minStake = p.Stake
-		}
-		if len(p.Features) > maxFeatures {
-			maxFeatures = len(p.Features)
-		}
+func newScoringContextBuilder() *scoringContextBuilder {
+	return &scoringContextBuilder{}
+}
+
+func (b *scoringContextBuilder) updateFrom(p *Provider) {
+	if p == nil {
+		return
 	}
 
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if !b.initialized {
+		b.minStake = p.Stake
+		b.maxStake = p.Stake
+		b.maxFeatureCount = len(p.Features)
+		b.initialized = true
+		return
+	}
+
+	if p.Stake < b.minStake {
+		b.minStake = p.Stake
+	}
+	if p.Stake > b.maxStake {
+		b.maxStake = p.Stake
+	}
+	if len(p.Features) > b.maxFeatureCount {
+		b.maxFeatureCount = len(p.Features)
+	}
+}
+
+func (b *scoringContextBuilder) build() *scoringContext {
 	return &scoringContext{
-		MaxStake:        maxStake,
-		MinStake:        minStake,
-		MaxFeatureCount: maxFeatures,
+		MinStake:        b.minStake,
+		MaxStake:        b.maxStake,
+		MaxFeatureCount: b.maxFeatureCount,
 	}
 }

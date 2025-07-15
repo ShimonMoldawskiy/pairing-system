@@ -1,7 +1,9 @@
 package pairing
 
 import (
+	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -56,4 +58,16 @@ func locationProximity(loc1, loc2 string) float64 {
 		}
 	}
 	return 0.0 // unknown or unmatched
+}
+
+func goroutineID() int64 {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	fields := strings.Fields(string(buf[:n]))
+	if len(fields) >= 2 {
+		if id, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
+			return id
+		}
+	}
+	return -1
 }

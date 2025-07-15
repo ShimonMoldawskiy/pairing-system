@@ -36,13 +36,13 @@ func (ps *MainPairingSystem) GetPairingList(providers []*Provider, policy *Consu
 		MinStake:         policy.MinStake,
 	}
 
-	filteredProviders := ps.FilterProviders(providers, normalizedPolicy)
+	filteredProviders := ps.filterProviders(providers, normalizedPolicy)
 
 	if len(filteredProviders) == 0 {
 		return nil, errors.New("no matching providers after filtering")
 	}
 
-	scores := ps.RankProviders(filteredProviders, normalizedPolicy)
+	scores := ps.rankProviders(filteredProviders, normalizedPolicy)
 
 	sort.SliceStable(scores, func(i, j int) bool {
 		if scores[i].Score == scores[j].Score {
@@ -59,7 +59,9 @@ func (ps *MainPairingSystem) GetPairingList(providers []*Provider, policy *Consu
 	return top, nil
 }
 
-func (ps *MainPairingSystem) FilterProviders(providers []*Provider, policy *ConsumerPolicy) []*Provider {
+func (ps *MainPairingSystem) filterProviders(providers []*Provider, policy *ConsumerPolicy) []*Provider {
+	// the method should be called only from within the GetPairingList!!!
+
 	// Build filter pipeline
 	filters := []filter{
 		rejectEmptyAddressFilter{},
@@ -71,8 +73,8 @@ func (ps *MainPairingSystem) FilterProviders(providers []*Provider, policy *Cons
 	return concurrentFilterPipeline(providers, policy, filters)
 }
 
-func (ps *MainPairingSystem) RankProviders(providers []*Provider, policy *ConsumerPolicy) []*PairingScore {
-	ctx := buildScoringContext(providers)
+func (ps *MainPairingSystem) rankProviders(providers []*Provider, policy *ConsumerPolicy) []*PairingScore {
+	// the method should be called only from within the GetPairingList!!!
 
 	// Build scorer pipeline
 	scorers := []scorer{
@@ -81,5 +83,5 @@ func (ps *MainPairingSystem) RankProviders(providers []*Provider, policy *Consum
 		locationProximityTableScorer{},
 	}
 
-	return concurrentScoringPipeline(providers, policy, ctx, scorers)
+	return concurrentScoringPipeline(providers, policy, scorers)
 }

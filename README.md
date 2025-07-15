@@ -1,13 +1,13 @@
 # Lava Network Provider Pairing System
 
 ## Overview
-This Go module implements the provider pairing logic for the PRC Gateway Network. It takes a list of providers and a consumer policy, filters out incompatible providers, scores the remaining ones, and returns the top 5 best-matching providers based on multiple criteria.
+This Go module implements the provider pairing logic for the Lava Network. It takes a list of providers and a consumer policy, filters out incompatible providers, scores the remaining ones, and returns the top 5 best-matching providers based on multiple criteria.
 
 ## Design Decisions
 
 ### Two-Pass Architecture
-- **First Pass (Filtering)**: Applies filters concurrently to exclude invalid providers and collects normalization metrics (max/min stake, max features count).
-- **Second Pass (Scoring)**: Computes normalized scores concurrently using previously gathered metrics.
+- **First Pass (Filtering)**: Applies filters concurrently to exclude invalid providers and collects normalization metrics (max/min stake, max features count) in scoring context.
+- **Second Pass (Scoring)**: Computes normalized scores concurrently using previously gathered metrics. The context cannot be passed directly without updating the signatures of the API functions, so it is passed via per-goroutine map.
 
 ### Concurrency
 - Limits the number of concurrent goroutines via `maxConcurrency` parameter.
@@ -43,6 +43,9 @@ The edge cases are also logged.
 - Duplicate provider addresses are allowed but logged.
 - Score weights are configurable per scorer.
 
+## Limitations
+The API methods filterProviders and rankProviders are optimized for dealing with normalized and filtered providers, so they can be called from within the main method GetPairingList only.
+
 ## Edge Case Handling
 - Empty or nil providers list → error.
 - Nil policy or negative stake → error.
@@ -55,14 +58,14 @@ The edge cases are also logged.
 
 ## Scoring/Filtering Flexibility
 For the future it's possible to:
-- Add a new struct that implements `Filter` or `Scorer` interfaces.
+- Add a new struct that implements `filter` or `scorer` interfaces.
 - Register it in the corresponding pipeline.
 - Adjust the scoring weights.
 
 ```go
 // Example:
 type MyCustomFilter struct{}
-func (f MyCustomFilter) Apply(p *Provider, policy *ConsumerPolicy) bool {
+func (f MyCustomFilter) apply(p *Provider, policy *ConsumerPolicy) bool {
     return p.SomeField != "bad"
 }
 

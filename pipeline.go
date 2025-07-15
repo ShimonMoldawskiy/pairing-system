@@ -24,6 +24,8 @@ func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, fil
 
 	addressSeen := sync.Map{}
 
+	contextBuilder := newScoringContextBuilder()
+
 	for _, provider := range providers {
 		p := provider
 		sem <- struct{}{}
@@ -59,6 +61,9 @@ func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, fil
 				}
 			}
 
+			// Update scoring context
+			contextBuilder.updateFrom(normalizedP)
+
 			resultChan <- normalizedP
 		}()
 	}
@@ -72,13 +77,26 @@ func concurrentFilterPipeline(providers []*Provider, policy *ConsumerPolicy, fil
 	for p := range resultChan {
 		result = append(result, p)
 	}
+
+	// Store context for current goroutine
+	scoringContextMap.Store(goroutineID(), contextBuilder.build())
+
 	return result
 }
 
-func concurrentScoringPipeline(providers []*Provider, policy *ConsumerPolicy, ctx *scoringContext, scorers []scorer) []*PairingScore {
+func concurrentScoringPipeline(providers []*Provider, policy *ConsumerPolicy, scorers []scorer) []*PairingScore {
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrency)
 	scoreChan := make(chan *PairingScore, len(providers))
+
+	// Load scoring context for the current goroutine
+	goID := goroutineID()
+	raw, ok := scoringContextMap.Load(goID)
+	if !ok {
+		panic("ScoringContext missing: concurrentFilterPipeline must be called before scoring in the same goroutine")
+	}
+	ctx := raw.(*scoringContext)
+	defer scoringContextMap.Delete(goID)
 
 	for _, p := range providers {
 		p := p
