@@ -1,0 +1,75 @@
+package pairing
+
+import (
+	"errors"
+	"sort"
+)
+
+type MainPairingSystem struct{}
+
+func (ps *MainPairingSystem) GetPairingList(providers []*Provider, policy *ConsumerPolicy) ([]*Provider, error) {
+	if providers == nil || len(providers) == 0 {
+		return nil, errors.New("provider list is nil or empty")
+	}
+	if policy == nil {
+		return nil, errors.New("policy is nil")
+	}
+	if policy.MinStake < 0 {
+		return nil, errors.New("consumer MinStake is negative")
+	}
+
+	// Normalize Consumer required features
+	normalizedPolicy := &ConsumerPolicy{
+		// Copying the policy to avoid modifying the original
+		RequiredLocation: policy.RequiredLocation,
+		RequiredFeatures: NormalizeFeatures(policy.RequiredFeatures),
+		MinStake:         policy.MinStake,
+	}
+
+	filteredProviders := ps.FilterProviders(providers, normalizedPolicy)
+
+	if len(filteredProviders) == 0 {
+		return nil, errors.New("no matching providers after filtering")
+	}
+
+	scores := ps.RankProviders(filteredProviders, normalizedPolicy)
+
+	sort.SliceStable(scores, func(i, j int) bool {
+		if scores[i].Score == scores[j].Score {
+			return scores[i].Provider.Address < scores[j].Provider.Address
+		}
+		return scores[i].Score > scores[j].Score
+	})
+
+	top := []*Provider{}
+	for i := 0; i < len(scores) && i < 5; i++ {
+		top = append(top, scores[i].Provider)
+	}
+
+	return top, nil
+}
+
+func (ps *MainPairingSystem) FilterProviders(providers []*Provider, policy *ConsumerPolicy) []*Provider {
+	// Build filter pipeline
+	filters := []Filter{
+		RejectEmptyAddressFilter{},
+		RequiredFeaturesFilter{},
+		LocationProximityFilter{ProximityThreshold: proximityThreshold},
+		StakeMinFilter{},
+	}
+
+	return concurrentFilterPipeline(providers, policy, filters)
+}
+
+func (ps *MainPairingSystem) RankProviders(providers []*Provider, policy *ConsumerPolicy) []*PairingScore {
+	ctx := BuildScoringContext(providers)
+
+	// Build scorer pipeline
+	scorers := []Scorer{
+		StakeScorer{},
+		FeatureScorer{},
+		LocationScorer{},
+	}
+
+	return concurrentScoringPipeline(providers, policy, ctx, scorers)
+}
