@@ -34,7 +34,7 @@ A pipeline pattern is used for Filters and Scorers which allows for:
 To ensure that input data remains unchanged, internal copies of the providers and policy are created for normalization and scoring.
 
 ### Observability
-The reason why a provider was filtered out or received a certain score, is logged. 
+A global `verbose` flag is added to log the reason why a provider was filtered out or received a certain score. 
 The edge cases are also logged.
 
 ## Assumptions

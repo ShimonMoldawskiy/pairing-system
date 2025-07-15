@@ -100,6 +100,10 @@ func concurrentScoringPipeline(providers []*Provider, policy *ConsumerPolicy, ct
 				sum += scoreWeights[scorer.Name()] * v
 			}
 
+			if verbose {
+				log.Printf("Provider %s final score: %.3f\n", p.Address, sum)
+			}
+
 			scoreChan <- &PairingScore{
 				Provider:   p,
 				Score:      sum,

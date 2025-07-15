@@ -1,6 +1,7 @@
 package pairing
 
 import (
+	"log"
 	"math"
 )
 
@@ -17,10 +18,16 @@ type StakeScorer struct{}
 func (s StakeScorer) Name() string { return "stake" }
 
 func (s StakeScorer) Score(p *Provider, policy *ConsumerPolicy, ctx *ScoringContext) float64 {
+	res := 0.0
 	if ctx.MaxStake == ctx.MinStake {
-		return 1.0 // All have equal stake
+		res = 1.0 // All have equal stake
+	} else {
+		res = float64(p.Stake-ctx.MinStake) / float64(ctx.MaxStake-ctx.MinStake)
 	}
-	return float64(p.Stake-ctx.MinStake) / float64(ctx.MaxStake-ctx.MinStake)
+	if verbose {
+		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.Name(), res)
+	}
+	return res
 }
 
 // FeatureScorer gives a higher score for more features than required
@@ -30,10 +37,14 @@ func (s FeatureScorer) Name() string { return "feature" }
 
 func (s FeatureScorer) Score(p *Provider, policy *ConsumerPolicy, ctx *ScoringContext) float64 {
 	extra := len(p.Features) - len(policy.RequiredFeatures)
-	if ctx.MaxFeatureCount == 0 {
-		return 0
+	res := 0.0
+	if ctx.MaxFeatureCount != 0 {
+		res = math.Min(1.0, float64(extra+len(policy.RequiredFeatures))/float64(ctx.MaxFeatureCount))
 	}
-	return math.Min(1.0, float64(extra+len(policy.RequiredFeatures))/float64(ctx.MaxFeatureCount))
+	if verbose {
+		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.Name(), res)
+	}
+	return res
 }
 
 // LocationScorer assigns 1.0 for exact match, else less (proximity logic later)
@@ -42,12 +53,17 @@ type LocationScorer struct{}
 func (s LocationScorer) Name() string { return "location" }
 
 func (s LocationScorer) Score(p *Provider, policy *ConsumerPolicy, ctx *ScoringContext) float64 {
+	res := 0.0
 	if policy.RequiredLocation == "" {
-		return 1.0 // No restriction
+		res = 1.0 // No restriction
+	} else if p.Location == policy.RequiredLocation {
+		res = 1.0
+	} else {
+		// Placeholder for future proximity calculation
+		res = 0.5
 	}
-	if p.Location == policy.RequiredLocation {
-		return 1.0
+	if verbose {
+		log.Printf("Provider %s %s score: %.3f\n", p.Address, s.Name(), res)
 	}
-	// Placeholder for future proximity calculation
-	return 0.5
+	return res
 }

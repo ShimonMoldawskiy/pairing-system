@@ -2,14 +2,24 @@ package pairing
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"sort"
 )
 
 type MainPairingSystem struct{}
 
-func (ps *MainPairingSystem) GetPairingList(providers []*Provider, policy *ConsumerPolicy) ([]*Provider, error) {
-	if providers == nil || len(providers) == 0 {
-		return nil, errors.New("provider list is nil or empty")
+func (ps *MainPairingSystem) GetPairingList(providers []*Provider, policy *ConsumerPolicy) (result []*Provider, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in GetPairingList: %v\n", r)
+			err = fmt.Errorf("internal error occurred: %v", r)
+			result = nil
+		}
+	}()
+
+	if len(providers) == 0 {
+		return nil, errors.New("provider list is empty")
 	}
 	if policy == nil {
 		return nil, errors.New("policy is nil")

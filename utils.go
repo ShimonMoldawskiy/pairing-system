@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+var verbose = false
+
+func EnableVerboseLogging() {
+	verbose = true
+}
+
 // NormalizeFeatures trims whitespace and sorts + deduplicates features
 func NormalizeFeatures(features []string) []string {
 	featureSet := make(map[string]struct{})

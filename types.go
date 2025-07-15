@@ -27,6 +27,7 @@ type PairingSystem interface {
 
 // Filter interface for pipeline filtering
 type Filter interface {
+	Name() string
 	Apply(*Provider, *ConsumerPolicy) bool
 }
 
