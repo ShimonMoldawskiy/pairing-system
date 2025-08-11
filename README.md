@@ -1,7 +1,7 @@
-# Lava Network Provider Pairing System
+# Blockchain Network Provider Pairing System
 
 ## Overview
-This Go module implements the provider pairing logic for the Lava Network. It takes a list of providers and a consumer policy, filters out incompatible providers, scores the remaining ones, and returns the top 5 best-matching providers based on multiple criteria.
+This Go module implements the provider pairing logic for the BlockChain Network. It takes a list of providers and a consumer policy, filters out incompatible providers, scores the remaining ones, and returns the top 5 best-matching providers based on multiple criteria.
 
 ## Design Decisions
 
@@ -74,6 +74,3 @@ filters := []Filter{
     // ... existing filters
 }
 ```
-
-## License
-This code is intended for evaluation and demonstration purposes.
